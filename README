@@ -1,0 +1,133 @@
+Requirements
+------------
+
+This package need all the following ros package:
+- usb_cam
+- uvc_camera
+- ar_track_alvar
+- rviz
+- tf
+- camera_calibration
+- camera_calibration_parsers
+
+
+
+Run
+---
+
+IMPORTANT: TO RUN ANY SCRIPT MOVE TO THE FOLDER CONTAINING THE LAUNCH SCRIPTS !!!
+
+To run simply call:
+> roslaunch astups.launch
+
+N.B. It is possible to change the camera device, see the "Parameters" section.
+N.B. If the camera does not send image, change the camera driver, see "Troubleshooting".
+
+To start the viewer just run:
+> rosrun rviz rviz -d rviz_artag_config.rviz
+
+To output the position of the bundles:
+> rosrun tf tf_echo world <parameter>
+Where the parameter can be any of:
+ar_marker_0
+
+
+
+
+Parameters
+----------
+
+--Video source
+
+It is possible to change the camera used by the launch script.
+Simply call with this line instead:
+> roslaunch astups.launch camera_device:=/dev/video0
+
+To make the change permanent, modify the launch script:
+<arg name="camera_device" default="/dev/video0" />
+
+N.B. the part to change is the "/dev/video0"to match your need.
+
+
+--Camera's calibration file
+
+The calibration has to be done for every camera.
+(Even the slightest change in the camera impacts a lot, and two camera are never the same.)
+To change the file either change the symbolic link called calibration_camera.yaml:
+> ln -sf data/<other_file_to_use.yaml> calibration_camera.yaml
+
+Or you can change the path in the launch script:
+<arg name="calibration_file" default="file://$(env PWD)/calibration_camera.yaml" />
+
+Or it can be provided a an argument, (be careful to pass it as an URL):
+> roslaunch astups.launch calibration_file:=file://<path/to/the/calibration/file.yaml>
+
+
+
+
+Create a new tag/bundle
+-----------------------
+
+To create a new bundle (a set of tag) call:
+> rosrun ar_track_alvar createMarker -ucm -s 5.0 -p
+(It is an interactive prompt.)
+
+To create a new tag call:
+> rosrun ar_track_alvar createMarker -ucm -s 5.0 <id>
+<id> being the unique id of the tag you want, it must be between 0 and 65535.
+
+A bundle is a set of tag, and as their geometric relation (one to another) is given to the system the detection is more robust.
+
+Once you created a bundle, you have to add its XML in the bundle's directory and add the corresponding line in astups.launch
+
+
+
+
+Camera calibration
+------------------
+
+To change the camera calibration (because the camera changed). Call:
+> roslaunch camera_calibration.launch
+
+N.B. It is possible to change the camera device, see the "Parameters" section.
+N.B. If the camera does not send image, change the camera driver, see "Troubleshooting".
+
+The parameters for the calibration are:
+- chessboard: to change the chessboard shape. Default is 8x6.
+> roslaunch camera_calibration.launch chessboard:=10x4
+
+- size: the chessboard's squares size. Default is 0.0252. (Unit is meter.) 
+> roslaunch camera_calibration.launch size=0.108
+
+Once the calibration is done you should click on "Save", then you can retrieve the result:
+> cd /tmp
+> tar -xzf calibrationdata.tar.gz ost.txt
+> mv ost.txt ost.ini
+> rosrun camera_calibration_parsers convert ost.ini calibration_<nome_or_your_camera>.yaml
+> cp calibration_<nome_or_your_camera>.yaml <your/copy/of/astups/artag>/bundles/.
+
+And possibly (once back in your folder):
+> ln -sf calibration_<nome_or_your_camera>.yaml calibration_camera.yaml
+
+More info:
+http://wiki.ros.org/camera_calibration/Tutorials/MonocularCalibration
+http://wiki.ros.org/camera_calibration_parsers
+
+
+
+
+Troubleshooting
+---------------
+
+If you have trouble with the camera it might be linked to the ROS driver used.
+You can test if changing the driver is enough with the ROS package:
+> rosrun image_view image_view image:=/astups/camera/image_raw
+
+It will display a frame with the camera's images. If the image fail to appear change the driver.
+To change the driver in the command line:
+> roslaunch astups.launch camera_driver:=1
+
+N.B. The default value is 0 and the parameter is a boolean.
+
+To change permanently the driver, edit the launch script:
+<arg name="camera_driver_type" default="0" />

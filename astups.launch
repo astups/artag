@@ -1,0 +1,60 @@
+<launch>
+	<!--Modify only this part-->
+	<!--The device number for the camera-->
+	<arg name="camera_device" default="/dev/video1" />
+
+	<!--The camera driver, can be either 0="usb_cam" or 1="uvc_camera". -->
+	<!--It can be changed if the current driver is not working with the camera plugged-->
+	<arg name="camera_driver_type" default="0" />
+
+	<!--The calibration file to use.-->
+	<arg name="calibration_file" default="file://$(env PWD)/calibration_camera.yaml" />
+
+
+
+
+
+
+<!-- ************** Do not modify below this point ************** -->
+	<!--To start the camera-->
+	<include file="camera.launch">
+		<arg name="camera_device" value="$(arg camera_device)" />
+		<arg name="camera_driver_type" value="$(arg camera_driver_type)" />
+		<arg name="calibration_file" value="$(arg calibration_file)" />
+	</include>
+	
+	<!--Broadcast the transformation from world's frame to the camera's frame-->
+	<!--Position-->
+	<arg name="x" default="0" />
+	<arg name="y" default="0" />
+	<arg name="z" default="0" />
+	<!--Orientation-->
+	<arg name="yaw" default="0" />
+	<arg name="pitch" default="0" />
+	<arg name="roll" default="0" />
+	<!--Name of the camera's frame-->
+<!--	<arg name="camera_frame_id" default="/astups/camera/camera_frame" />-->
+	<!--Periodicity of the broadcast (in millisecond)-->
+	<arg name="period" default="500" />
+	<node name="camera_pose" pkg="tf" type="static_transform_publisher" args="$(arg x) $(arg y) $(arg z) $(arg yaw) $(arg pitch) $(arg roll) world camera $(arg period)" output="screen" />
+	
+
+	<!--Start the ar_tracker node that detects the position of the markers (in bundle mode)-->
+	<!--The width in centimeters of one side of the black square marker border-->
+	<arg name="marker_size" default="5" />
+	<!--A threshold determining when new markers can be detected under uncertainty-->
+	<arg name="max_new_marker_error" default="0.08" />
+	<!--A threshold determining how much tracking error can be observed before an tag is considered to have disappeared-->
+	<arg name="max_track_error" default="0.2" />
+	<!--The name of the topic that provides camera frames for detecting the AR tags. This can be mono or color, but should be an UNrectified image, since rectification takes place in this package-->
+	<arg name="cam_image_topic" default="/astups/camera/image_raw" />
+	<!--The name of the topic that provides the camera calibration parameters so that the image can be rectified-->
+	<arg name="cam_info_topic" default="/astups/camera/camera_info" />
+	<!--The name of the frame that the published Cartesian locations of the AR tags will be relative to-->
+	
+	<!--Bundles-->
+	<arg name="bundle_files" default="$(env PWD)/markers/MarkerData_0_1_2_3.xml " />
+
+<!--	<node name="ar_poses" ns="/astups/" pkg="ar_track_alvar" type="individualMarkersNoKinect" output="screen" args="$(arg marker_size) $(arg max_new_marker_error) $(arg max_track_error) $(arg cam_image_topic) $(arg cam_info_topic) world" />-->
+	<node name="ar_poses" ns="/astups/" pkg="ar_track_alvar" type="findMarkerBundlesNoKinect" output="screen" args="$(arg marker_size) $(arg max_new_marker_error) $(arg max_track_error) $(arg cam_image_topic) $(arg cam_info_topic) world $(arg bundle_files)" />
+</launch>
